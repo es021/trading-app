@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Trading App</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script>
+        function getCommission(price) {
+            let com = price * 0.08 / 100;
+            if (com <= 8) {
+                com = 8;
+            }
+
+            return com;
+        }
+        function calculate(account, entry, stoploss, defaultLot) {
+            let loss = account * 0.01;
+            if (defaultLot) {
+                lot = defaultLot
+            } else {
+                lot = loss / ((entry - stoploss) * 100)
+            }
+            let lotRounded = Math.floor(lot);
+            let totalUnit = lotRounded * 100
+            let buyPrice = totalUnit * entry;
+            let sellPrice = totalUnit * stoploss
+
+            let commissionBuy = getCommission(buyPrice);
+            let commissionSell = getCommission(sellPrice);
+            let buyCost = buyPrice + commissionBuy;
+            let sellGain = sellPrice - commissionSell;
+
+
+
+
+            let r = {
+                _1_DELIM_lot: lot.toFixed(2) + " => " + lotRounded,
+                _2_DELIM_total_unit: totalUnit,
+                _3_DELIM_entry: entry.toFixed(3),
+                _4_DELIM_stoploss: stoploss,
+                _5_DELIM_buy_cost: buyCost.toFixed(2) + ` = (${buyPrice.toFixed(2)} + ${commissionBuy.toFixed(2)})`,
+                _6_DELIM_sell_gain: sellGain.toFixed(2) + ` = (${sellPrice.toFixed(2)} - ${commissionSell.toFixed(2)})`,
+                _7_DELIM_total_loss: (buyCost - sellGain).toFixed(2) + ` = (${buyCost.toFixed(2)} - ${sellGain.toFixed(2)})`,
+            }
+            let v = "";
+            for (k in r) {
+                v += `<div><b>${k.split("_DELIM_")[1]}</b>:<br>${r[k]}</div>`
+            }
+
+
+            // possible sell price
+            v += "<hr><b>Exit At:</b><br>";
+            let percent = [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.40];
+            for (var p of percent) {
+                let sellP = entry + entry * p;
+                let sellG = sellP * totalUnit;
+                let com = getCommission(sellG);
+                let finalSellG = sellG - com;
+                let profit = finalSellG - buyCost;
+                let color = profit <= 0 ? 'red' : 'green';
+                v += `<div style="color:${color};">
+                    - <b>${sellP.toFixed(3)} (${p * 100}%)</b><br>
+                    <small>-- (${finalSellG.toFixed(2)} = ${sellG.toFixed(2)} - ${com.toFixed(2)})</small><br>
+                    <small>---- ${profit.toFixed(2)}</small>
+                    </div>
+                    `;
+            }
+
+            document.getElementById("view").innerHTML = v
+        }
+
+        function startCalculate() {
+            account = Number.parseFloat(document.getElementById("account").value);
+            entry = Number.parseFloat(document.getElementById("entry").value);
+            stoploss = Number.parseFloat(document.getElementById("stoploss").value);
+            defaultLot = Number.parseFloat(document.getElementById("defaultLot").value);
+            if (isNaN(account)) {
+                account = null;
+            }
+            if (isNaN(entry)) {
+                entry = null;
+            }
+            if (isNaN(stoploss)) {
+                stoploss = null;
+            }
+            if (isNaN(defaultLot)) {
+                defaultLot = null;
+            }
+            calculate(account, entry, stoploss, defaultLot);
+        }
+    </script>
+</head>
+
+<body>
+    account : <input id="account" /><br>
+    entry : <input id="entry" /><br>
+    stoploss : <input id="stoploss" /><br>
+    defaultLot : <input id="defaultLot" /><br>
+    <button onclick="startCalculate()">Calculate</button>
+    <div id="view"></div>
+</body>
+
+</html>
